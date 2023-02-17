@@ -11,7 +11,7 @@
 
 	<div class="box">
 		<div class="conHead">
-			<h1 class="logo"><strong>LUPPITER</strong> 통함관제시스템</h1>
+			<h1 class="logo"></h1>
 		</div>
 
 		<div class="conBody">
