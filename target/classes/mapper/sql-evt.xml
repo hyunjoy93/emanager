@@ -1,0 +1,369 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.framework.cmm.mapper.EvtMapper">
+
+	<select id="selectEventList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        SELECT COUNT(*) OVER() AS total_count
+             , (CASE WHEN CAST(#{pageNo}AS INTEGER) * CAST(#{pageSize}AS INTEGER) <![CDATA[ < ]]> COUNT(*) OVER() THEN 'Y' WHEN CAST(#{pageNo}AS INTEGER) * CAST(#{pageSize}AS INTEGER) <![CDATA[ >= ]]> COUNT(*) OVER() THEN 'N' END) AS next_page_yn
+             , TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI:SS') AS now_date_time
+             , TO_CHAR(NOW() + '30 seconds', 'YYYYMMDDHH24MISS') AS add_thirty_time
+             , A.event_id
+             , TO_CHAR(A.occu_time, 'YYYY-MM-DD HH24:MI:SS') AS occu_time
+             , CASE WHEN A.event_state <![CDATA[ = ]]> '조치완료' THEN
+             		TO_CHAR(A.event_result_time - A.occu_time, 'DD일 HH24:MI:SS')
+               ELSE TO_CHAR(now() - A.occu_time, 'DD일 HH24:MI:SS') END AS cal_occu_time
+             , A.target_ip
+             , A.target_item
+             , A.target_value
+             , CASE WHEN A.gubun IS NULL THEN A.target_contents ELSE SUBSTRING(A.target_contents, 10) END AS target_contents
+             , <![CDATA[ replace(CASE WHEN A.gubun IS NULL THEN A.target_contents ELSE SUBSTRING(A.target_contents, 10) END, '"', '""') ]]> AS excel_target_contents
+             , A.send_agent
+             , A.create_time
+             , A.event_level
+             , <![CDATA[ 
+               CASE WHEN 'Fatal' = event_level THEN '<span class="badge danger">Fatal</span>'
+                    ELSE '<span class="badge careful">Critical</span>' 
+               END
+               ]]> AS event_level_html
+             , A.last_occu_time
+             , A.event_occu_count
+             , A.equ_barcode
+             , A.device_ip
+             , A.mgmt_ip
+             , A.ipmi_ip
+             , A.physical_address
+             , A.hostname
+             , A.equip_label
+             , A.model
+             , A.manuf_nm
+             , A.container_nm
+             , A.datacenter_nm
+             , A.rack_location
+             , A.equip_position
+             , A.stdnm
+             , A.estdnm
+             , A.type_nm
+             , A.own_dept_nm
+             , A.warr_st_dt
+             , A.hwoprusrcd
+             , A.event_state
+             , A.event_step1_user
+             , A.event_step1_state
+             , TO_CHAR(A.event_step1_start, 'YYYY-MM-DD HH24:MI:SS') AS event_step1_start
+             , A.event_step1_end
+             , A.event_step1_contents
+             , A.event_step2_user
+             , A.event_step2_state
+             , A.event_step2_start
+             , A.event_step2_end
+             , A.event_step2_contents
+             , A.event_service_impact
+             , A.event_tech_voc
+             , A.event_result_type
+             , A.event_result_user
+             , TO_CHAR(A.event_result_time, 'YYYY-MM-DD HH24:MI:SS') AS event_result_time
+             , A.incident_id
+             , <![CDATA[
+               CASE WHEN A.incident_id = '' THEN ''
+                    WHEN 'Fatal' = A.event_level THEN '<span class="badge danger">' || A.incident_id || '</span>'
+                    ELSE '<span class="badge">' || A.incident_id || '</span>'
+               END
+               ]]> AS incident_id_html             
+             , A.exception_flag
+             , A.zabbix_state
+             , A.gubun
+             , A.trigger_id
+             , A.host_group_gubun
+          FROM cmon_event_info A
+         WHERE 1=1
+         <if test="filterEventLevel != null and filterEventLevel != '' ">
+           AND A.event_level = #{filterEventLevel}
+           </if>
+           <if test="filterZabbixState != null and filterZabbixState != '' ">
+           AND A.zabbix_state = #{filterZabbixState}
+           </if>
+           <if test="filterEventState != null and filterEventState != '' ">
+           	<if test='filterEventState.equals("진행중")'>
+           		AND A.event_state != '조치완료'
+           	</if>
+           	<if test="filterEventState neq '진행중'.toString()">
+           		AND A.event_state = #{filterEventState}
+           	</if>
+           </if>
+           <if test="filterIncidentId != null and filterIncidentId != '' ">
+           AND UPPER(A.incident_id) LIKE '%' ||  UPPER(#{filterIncidentId}) || '%'
+           </if>
+           <if test="filterEventStep1User != null and filterEventStep1User != '' ">
+           AND UPPER(A.event_step1_user) LIKE '%' ||  UPPER(#{filterEventStep1User}) || '%'
+           </if>
+           <if test="filterEventStep2User != null and filterEventStep2User != '' ">
+           AND UPPER(A.event_step2_user) LIKE '%' ||  UPPER(#{filterEventStep2User}) || '%'
+           </if>
+           <if test="filterTargetContents != null and filterTargetContents != '' ">
+           AND UPPER(A.target_contents) LIKE '%' ||  UPPER(#{filterTargetContents}) || '%'
+           </if>
+           <if test="filterStdnm != null and filterStdnm != '' ">
+           AND UPPER(A.stdnm) LIKE '%' ||  UPPER(#{filterStdnm}) || '%'
+           </if>
+           <if test="filterEstdnm != null and filterEstdnm != '' ">
+           AND UPPER(A.estdnm) LIKE '%' ||  UPPER(#{filterEstdnm}) || '%'
+           </if>
+           <if test="filterHostname != null and filterHostname != '' ">
+           AND UPPER(A.hostname) LIKE '%' ||  UPPER(#{filterHostname}) || '%'
+           </if>
+           <if test="filterGubun != null and filterGubun != '' ">
+           AND UPPER(A.gubun) LIKE '%' ||  UPPER(#{filterGubun}) || '%'
+           </if>
+           <if test="filterTargetIp != null and filterTargetIp != '' ">
+           AND UPPER(A.target_ip) LIKE '%' ||  UPPER(#{filterTargetIp}) || '%'
+           </if>
+           <if test="filterContainerNm != null and filterContainerNm != '' ">
+           AND UPPER(A.container_nm) LIKE '%' ||  UPPER(#{filterContainerNm}) || '%'
+           </if> 
+           <if test="filterDatacenterNm != null and filterDatacenterNm != '' ">
+           AND UPPER(A.datacenter_nm) LIKE '%' ||  UPPER(#{filterDatacenterNm}) || '%'
+           </if>
+           <if test="filterRackLocation != null and filterRackLocation != '' ">
+           AND UPPER(A.rack_location) LIKE '%' ||  UPPER(#{filterRackLocation}) || '%'
+           </if>           
+           <if test="filterEventId != null and filterEventId != '' ">
+           AND UPPER(A.event_id) LIKE '%' ||  UPPER(#{filterEventId}) || '%'
+           </if>
+           <if test="eventState != null and eventState != '' ">
+           AND A.event_state != #{eventState}
+           </if>
+           <if test = 'startDateTime != null and startDateTime != ""'>
+			<if test = 'searchType.equals("evtOccu")'>
+				AND A.occu_time BETWEEN TO_TIMESTAMP(#{startDateTime}, 'YYYY-MM-DD HH24:MI:SS') AND TO_TIMESTAMP(#{endDateTime}, 'YYYY-MM-DD HH24:MI:SS')
+			</if>
+			<if test = 'searchType.equals("evtChk")'>
+				AND A.event_step1_start BETWEEN TO_TIMESTAMP(#{startDateTime}, 'YYYY-MM-DD HH24:MI:SS') AND TO_TIMESTAMP(#{endDateTime}, 'YYYY-MM-DD HH24:MI:SS')
+			</if>
+			<if test = 'searchType.equals("evtEnd")'>
+				AND A.event_result_time BETWEEN TO_TIMESTAMP(#{startDateTime}, 'YYYY-MM-DD HH24:MI:SS') AND TO_TIMESTAMP(#{endDateTime}, 'YYYY-MM-DD HH24:MI:SS')
+			</if>						
+           
+           </if>           
+         ORDER BY A.occu_time DESC
+	   	<if test = 'pagingYn != null and pagingYn != ""'>	
+			<if test = 'pagingYn.equals("Y")'>	         
+        		 LIMIT CAST(#{pageSize} AS INTEGER) OFFSET (CAST(#{pageNo} AS INTEGER) - 1) * CAST(#{pageSize} AS INTEGER)
+			</if>
+		</if>		
+	</select>
+
+	<select id="selectEventInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        SELECT A.event_id
+             , TO_CHAR(A.occu_time, 'YYYY-MM-DD HH24:MI:SS') AS occu_time
+             , CASE WHEN A.event_state <![CDATA[ = ]]> '조치완료' THEN
+             		TO_CHAR(A.event_result_time - A.occu_time, 'DD일 HH24:MI:SS')
+               ELSE TO_CHAR(now() - A.occu_time, 'DD일 HH24:MI:SS') END AS cal_occu_time
+             , A.target_ip
+             , A.target_item
+             , A.target_value
+             , A.target_contents
+             , A.send_agent
+             , A.create_time
+             , A.event_level
+             , TO_CHAR(A.last_occu_time, 'YYYY-MM-DD HH24:MI:SS') AS last_occu_time
+             , A.event_occu_count
+             , A.equ_barcode
+             , A.device_ip
+             , A.mgmt_ip
+             , A.ipmi_ip
+             , A.physical_address
+             , A.hostname
+             , A.equip_label
+             , A.model
+             , A.manuf_nm
+             , A.container_nm
+             , A.datacenter_nm
+             , A.rack_location
+             , A.equip_position
+             , A.stdnm
+             , A.estdnm
+             , A.type_nm
+             , A.own_dept_nm
+             , A.warr_st_dt
+             , A.hwoprusrcd
+             , A.event_state
+             , A.event_step1_user
+             , A.event_step1_state
+             , TO_CHAR(A.event_step1_start, 'YYYY-MM-DD HH24:MI:SS') AS event_step1_start
+             , TO_CHAR(A.event_step1_end, 'YYYY-MM-DD HH24:MI:SS') AS event_step1_end
+             , A.event_step1_contents
+             , A.event_step2_user
+             , A.event_step2_state
+             , TO_CHAR(A.event_step2_start, 'YYYY-MM-DD HH24:MI:SS') AS event_step2_start
+             , TO_CHAR(A.event_step2_end, 'YYYY-MM-DD HH24:MI:SS') AS event_step2_end
+             , A.event_step2_contents
+             , A.event_service_impact
+             , A.event_tech_voc
+             , A.event_result_type
+             , A.event_result_user
+             , TO_CHAR(A.event_result_time, 'YYYY-MM-DD HH24:MI:SS') AS event_result_time
+             , A.incident_id             
+             , A.exception_flag
+             , A.zabbix_state
+             , A.gubun
+             , A.trigger_id
+             , A.host_group_gubun
+             , CASE WHEN '신규' = A.event_state THEN '99'
+                    WHEN '조치중' = A.event_state AND '인지 접수 및 조치' = A.event_step2_state THEN '11'
+                    WHEN '조치중' = A.event_state AND '이관' = A.event_step2_state THEN '21'             
+                    WHEN '인지' = A.event_state AND '인지' = A.event_step1_state THEN '10'
+                    WHEN '조치중' = A.event_state AND '이관' = A.event_step1_state THEN '20'
+                    WHEN '조치완료' = A.event_state THEN '00'
+               END AS event_step
+             , A.zbx_available
+             , A.ipmi_available
+             , A.snmp_available
+             , A.jmx_available        
+          FROM cmon_event_info A        
+         WHERE 1=1
+           AND A.event_id = #{eventId}
+	</select>
+	
+	<select id="selectNewAlarmCount" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        SELECT COUNT(*) AS total_count
+          FROM cmon_event_info A
+         WHERE 1=1
+           <if test="eventState != null and eventState != '' ">
+           AND A.event_state != #{eventState}
+           </if>
+	</select>
+
+	<update id="updateOnePerceive" parameterType="java.util.HashMap">	
+		UPDATE cmon_event_info 
+		   SET event_state = '인지'
+		     , event_step1_user = #{userName}
+		     , event_step1_start = now()
+		     , event_step1_state = '인지'
+		 WHERE 1=1
+		   AND event_id IN <foreach collection="arrEventId" item="item" open="(" close=")" separator=",">#{item}</foreach>
+		   AND event_state = '신규'
+	</update>
+	
+	<update id="updateTwoPerceive" parameterType="java.util.HashMap">	
+		UPDATE cmon_event_info 
+		   SET event_state = '조치중'
+		     , event_step2_user = #{userName}
+		     , event_step2_start = now()
+		     , event_step2_state = '인지 접수 및 조치'
+		 WHERE 1=1
+		   AND event_id IN <foreach collection="arrEventId" item="item" open="(" close=")" separator=",">#{item}</foreach>
+		   AND event_step1_state = '이관'
+	</update>	
+
+	<update id="updateOneTransfer" parameterType="java.util.HashMap">	
+		UPDATE cmon_event_info 
+		   SET event_state = '조치중'
+		     , event_step1_end = now()
+		     , event_step1_state = '이관'
+		     <if test="eventStep1Contents != null and eventStep1Contents != '' ">
+		     , event_step1_contents = #{eventStep1Contents}
+		     </if>
+		 WHERE 1=1
+		   AND event_id IN <foreach collection="arrEventId" item="item" open="(" close=")" separator=",">#{item}</foreach>
+		   AND event_step1_state = '인지'
+	</update>
+	
+	<update id="updateTwoTransfer" parameterType="java.util.HashMap">	
+		UPDATE cmon_event_info 
+		   SET event_state = '조치중'
+		     , event_step2_end = now()
+		     , event_step2_state = '이관'
+		     <if test="eventStep2Contents != null and eventStep2Contents != '' ">
+		     , event_step2_contents = #{eventStep2Contents}
+		     </if>
+		 WHERE 1=1
+		   AND event_id IN <foreach collection="arrEventId" item="item" open="(" close=")" separator=",">#{item}</foreach>
+		   AND event_step2_state = '인지 접수 및 조치'
+	</update>
+		
+	<update id="updateEventIncidentId" parameterType="java.util.HashMap">	
+		UPDATE cmon_event_info 
+		   SET incident_id = (
+							   SELECT A.incident_id
+								 FROM cmon_incident_info A
+								WHERE A.event_id = #{eventId}
+		                     )
+         WHERE 1=1
+           AND event_id IN <foreach collection="arrEventId" item="item" open="(" close=")" separator=",">#{item}</foreach>
+	</update>
+
+	<update id="updateEventEnd" parameterType="java.util.HashMap">	
+		UPDATE cmon_event_info 
+		   SET event_state = '조치완료'
+		     , event_result_time = NOW()
+             , event_result_user = #{userName}
+		     <if test="eventStep1Contents != null and eventStep1Contents != '' ">
+		     , event_step1_contents = #{eventStep1Contents}
+		     </if>
+		     <if test="eventStep2Contents != null and eventStep2Contents != '' ">
+		     , event_step2_contents = #{eventStep2Contents}
+		     </if>
+		     <if test="eventServiceImpact != null and eventServiceImpact != '' ">
+		     , event_service_impact = #{eventServiceImpact}
+		     </if>
+		     <if test="eventTechVoc != null and eventTechVoc != '' ">
+		     , event_tech_voc = #{eventTechVoc}
+		     </if>
+		     <if test="eventResultType != null and eventResultType != '' ">
+		     , event_result_type = #{eventResultType}
+		     </if>	
+		     <if test = 'chkState.equals("신규")'>
+		     , event_step1_user = #{userName}
+		     , event_step1_state = '이관'
+		     , event_step1_start = NOW()
+		   	 , event_step1_end = NOW()
+		     </if>	     		     		     
+		 WHERE 1=1
+		   AND event_id IN <foreach collection="arrEventId" item="item" open="(" close=")" separator=",">#{item}</foreach>
+	</update>
+
+	<update id="updateEventSave" parameterType="java.util.HashMap">	
+		UPDATE cmon_event_info 
+		   SET event_step1_user = #{userName} 
+		     <if test="eventStep1Contents != null and eventStep1Contents != '' ">
+		     , event_step1_contents = #{eventStep1Contents}
+		     </if>
+		     <if test="eventStep2Contents != null and eventStep2Contents != '' ">
+		     , event_step2_contents = #{eventStep2Contents}
+		     </if>		     		     
+		 WHERE 1=1
+		   AND event_id IN <foreach collection="arrEventId" item="item" open="(" close=")" separator=",">#{item}</foreach>
+	</update>
+	
+  	<update id="endSelectedEventList" parameterType="java.util.HashMap">	
+		UPDATE cmon_event_info 
+		   SET event_state = '조치완료'
+		   	 , event_step1_state = '이관'
+		   	 , event_step1_end = now()
+		   	 , event_step2_user = #{userName}
+		   	 , event_step2_state = '인지 접수 및 조치'
+		   	 , event_step2_start = now()
+		   	 , event_step2_end = now()
+		     , event_result_time = now()
+             , event_result_user = #{userName}
+		     <if test="eventStep1Contents != null and eventStep1Contents != '' ">
+		     , event_step1_contents = #{eventStep1Contents}
+		     </if>
+		     <if test="eventStep2Contents != null and eventStep2Contents != '' ">
+		     , event_step2_contents = #{eventStep2Contents}
+		     </if>
+		     <if test="eventServiceImpact != null and eventServiceImpact != '' ">
+		     , event_service_impact = #{eventServiceImpact}
+		     </if>
+		     <if test="eventTechVoc != null and eventTechVoc != '' ">
+		     , event_tech_voc = #{eventTechVoc}
+		     </if>
+		     <if test="eventResultType != null and eventResultType != '' ">
+		     , event_result_type = #{eventResultType}
+		     </if>		     		     		     
+		 WHERE 1=1
+		   AND event_id IN <foreach collection="arrEventId" item="item" open="(" close=")" separator=",">#{item}</foreach>
+	</update>	
+		
+</mapper>

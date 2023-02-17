@@ -1,6 +1,5 @@
 package com.framework.ctl.controller;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
@@ -20,8 +19,6 @@ import com.framework.cmm.helper.WebControllerHelper;
 import com.framework.ctl.service.CtlService;
 import com.framework.utl.BizUtil;
 import com.framework.utl.StringUtil;
-
-import nets.ldap.ADUtilSSL;
 
 @RestController
 public class CtlRestController extends WebControllerHelper {
@@ -93,145 +90,6 @@ public class CtlRestController extends WebControllerHelper {
 		}
 
 		return map;
-	}
-	
-	/**
-	 * LDAP 로그인 연동
-	 * 
-	 * @param Map<String, Object> map
-	 * @param HttpServletRequest request
-	 * @return json
-	 * @exception Exception
-	 */
-	@RequestMapping(value="/api/ctl/ldapLogin", method=RequestMethod.POST)
-	public Map<String, Object> ldapLogin(@RequestParam Map<String, Object> map, HttpServletRequest request) throws Exception {
-		
-		try {
-			// 초기화
-			super.setInit(map, request);
-			
-			// 패스워드
-			String paramPassWord = StringUtil.isNullToString(map.get("loginPassword"), "");
-			
-			Map<String, Object> usrInfo = new HashMap<String, Object>();
-			
-			Object resultCode = "";
-			
-			try {
-				log.info("========================try login to LDAP========================");
-				
-				usrInfo = authTry(map);
-				
-				resultCode = usrInfo.get("resultCode");
-				map.put("resultCode", resultCode);
-				
-				// 패스워드 SHA256 암호화
-				usrInfo.put("loginPassword", BizUtil.encryptPassword(paramPassWord));
-				
-				if(!resultCode.equals("E00050017")) {
-					ctlService.insertLdapUser(usrInfo);
-				}
-				
-			} catch (Exception e) {
-				e.printStackTrace();
-				log.debug(e.toString());
-				log.debug(e.getMessage());
-			}
-			
-			log.info("========================try login to LDAP complete========================");
-			
-			// 사용자정보
-			super.setInfo(map, request, "info", ctlService.selectUserInfo(map));
-
-			// 로그인 처리
-			if(Constant.SUCCESS_RES_CODE.equals(map.get("resCode"))) {
-				request.getSession().setAttribute("loginInfo", map.get("info"));
-			}
-			
-		}catch(Exception ex) {
-			super.setResFail(map, request, ex);
-		}
-		
-		return map;
-	}
-	
-	public Map<String, Object> authTry(Map<String, Object> ldapVo) {
-		
-		String retDesc = "";
-		String resultYn = "";
-		String resultCode = "";
-		
-		Boolean bLogin = false;
-		Boolean bPort = false;
-		
-		String userId = "";
-		String userPw = "";
-		
-		if(!ldapVo.isEmpty()) {
-			userId = (String) ldapVo.get("loginId");
-			userPw = (String) ldapVo.get("loginPassword");
-		}
-		
-		String connID = "luppiter_ldapdevuser";
-		String connPWD = "!425luppiter_Ld@pdevUs3r$";
-		String host = "tbldap01.ldap.ktlab.dev";
-		String port = "389";
-		String baseDN = "OU=Employee,DC=ldap,DC=ktlab,DC=dev";
-		
-		if(serverMode.equals("PRD")) {
-			connID = "luppiter_ldapuser";
-			connPWD = "*425luppiter_Ld@pUs3r%";
-			host = "tbldap01.ldap.ktlab.dev";
-			port = "389";
-			baseDN = "OU=Employee,DC=ldap,DC=ktlab,DC=dev";
-		}
-		
-		if (port.equals("636")) {
-			bPort = true;
-		}
-		
-		Map<String, Object> departMap = new HashMap<>();
-		
-		try {
-			
-			// 고급인증
-			bLogin = ADUtilSSL.auth_loginPeriod(host, port, baseDN, userId, userPw, connID, connPWD, bPort);// 389 : false 636:true
-			// 사용자 속성 정보 조회
-			departMap = ADUtilSSL.query_userinfo(host, port, baseDN, userId, connID, connPWD, bPort);
-			
-			resultYn = "Y";
-			
-		} catch (Exception e1) {
-			log.debug(e1.toString());
-			resultYn = "N";
-			log.debug(e1.getMessage());
-			if (e1.getMessage().indexOf("data 0003") > 0) {
-				retDesc = "서비스 계정이 잘못되었습니다";
-				resultCode = "E00050016";
-			} else if (e1.getMessage().indexOf("data 0004") > 0) {
-				retDesc = "비밀번호가 만료되었습니다.";
-				resultCode = "E00050017";
-			} else if (e1.getMessage().indexOf("data 0005") > 0) {
-				retDesc = "인증에 실패하였습니다.";
-				resultCode = "E00050018";
-			} else {
-				retDesc = e1.getMessage();
-			}
-			log.debug(resultCode);
-		}
-		
-		if(!departMap.isEmpty()) {
-			ldapVo.put("userName", departMap.get("userName")); 
-			ldapVo.put("userDepart", departMap.get("deptName")); 
-		}
-		
-		ldapVo.put("resultYn", resultYn);
-		ldapVo.put("retDesc", retDesc);
-		ldapVo.put("resultCode", resultCode);
-		
-		log.debug(ldapVo.toString());
-		
-		return ldapVo;
 	}
 	
 	

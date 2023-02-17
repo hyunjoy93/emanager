@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.framework.cmm.mapper.MktMapper">
+
+	<select id="selectMktList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+		 SELECT COUNT(*) OVER() AS total_count
+		 	  , TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI:SS') AS now_date_time
+		 	  , TO_CHAR(NOW() + '30 seconds', 'YYYYMMDDHH24MISS') AS add_thirty_time
+			  , (CASE WHEN CAST(#{pageNo}AS INTEGER) * CAST(#{pageSize}AS INTEGER) <![CDATA[ < ]]> COUNT(*) OVER() THEN 'Y' WHEN CAST(#{pageNo}AS INTEGER) * CAST(#{pageSize}AS INTEGER) <![CDATA[ >= ]]> COUNT(*) OVER() THEN 'N' END) AS next_page_yn
+			  , A.incident_id																												/* 인시던트 ID */
+			  , TO_CHAR(A.event_time, 'MM/DD HH24:MI') AS occu_time																		/* 이벤트 발생시간 */			  		
+			  , A.incident_level																											/* 인시던트 등급 */
+			  , CASE WHEN B.gubun IS NULL THEN A.incident_contents ELSE SUBSTRING(A.incident_contents, 10) END AS incident_contents 		/* 이벤트 제목 */  
+			  , TO_CHAR(A.incident_start_time, 'YYYY-MM-DD HH24:MI:SS') AS incident_start_time												/* 인시던트 시작 시간 */          
+		   FROM cmon_incident_info A
+LEFT OUTER JOIN (SELECT Z.event_id, Z.incident_id, Z.hostname, Z.occu_time, Z.gubun
+		     		 , DENSE_RANK() OVER (PARTITION BY Z.incident_id ORDER BY Z.event_id) AS rnk
+		     	  FROM cmon_event_info Z) B		
+		     ON A.incident_id = B.incident_id
+		    AND B.rnk = 1		   
+		  WHERE 1 = 1
+		    AND A.event_time between NOW() - INTERVAL '2day' AND NOW()
+		 <if test = 'incidentState != null and incidentState != ""'>
+		   AND A.incident_state != #{incidentState}
+	   	 </if>
+		 <if test = 'incidentYn != null and incidentYn != ""'>
+	   	 	<if test = 'incidentYn.equals("Y")'>
+	   	 		AND A.incident_level = '이상징후'
+	   	 	</if>
+	   	 	<if test = 'incidentYn.equals("N")'>
+	   	 		AND A.incident_level != '이상징후'	   	 		   	 	
+	   	 	</if>		   
+	   	 </if>	   	 		  
+	   	 <if test = 'startDateTime != null and startDateTime != ""'>
+	   	 		AND A.event_time BETWEEN TO_DATE(#{startDateTime}, 'YYYY-MM-DD HH24:MI')
+	   	 							 AND TO_DATE(#{endDateTime}, 'YYYY-MM-DD HH24:MI')
+	   	 </if>
+         ORDER BY A.event_time DESC
+         LIMIT CAST(#{pageSize} AS INTEGER) OFFSET (CAST(#{pageNo} AS INTEGER) - 1) * CAST(#{pageSize} AS INTEGER)
+	</select>
+	
+	
+	<select id="detail" parameterType="java.util.HashMap" resultType="java.util.HashMap">	 
+		 SELECT A.incident_id																						/* 인시던트 ID */
+			  , A.event_id																							/* 이벤트 ID */
+			  , TO_CHAR(A.event_time, 'YYYY-MM-DD HH24:MI:SS') AS occu_time											/* 이벤트 발생시간 */
+			  , TO_CHAR((A.incident_end_time - A.incident_start_time), 'DD일 HH24:MI:SS') AS cal_occu_time			/* 경과시간 */	
+			  , A.incident_level																					/* 인시던트 등급 */	    
+			  , CASE WHEN B.gubun IS NULL THEN A.incident_contents ELSE SUBSTRING(A.incident_contents, 10) END AS incident_contents 										/* 이벤트 제목 */
+			  , A.captain																							/* 관제 상황 조장 */
+			  , A.incident_chief																					/* 상황 반장 */
+			  , A.restore_chief																						/* 복구 반장 */
+			  , A.restore_team																						/* 복구 팀 */
+			  , (SELECT TO_CHAR(proc_time, 'YYYY-MM-DD HH24:MI:SS') FROM cmon_incident_proc WHERE incident_id = #{incidentId} ORDER BY idx DESC LIMIT 1 ) AS latest_proc 	/* 인시던트 조치내역 가장 최근 등록일자 */
+		   FROM cmon_incident_info A
+LEFT OUTER JOIN (SELECT Z.event_id, Z.incident_id, Z.hostname, Z.occu_time, Z.gubun
+		     		 , DENSE_RANK() OVER (PARTITION BY Z.incident_id ORDER BY Z.event_id) AS rnk
+		     	  FROM cmon_event_info Z) B		
+		     ON A.incident_id = B.incident_id
+		    AND B.rnk = 1
+LEFT OUTER JOIN cmon_user C
+			 ON A.incident_result_user = C.user_id	    		     	    
+		  WHERE 1 = 1 
+		    AND A.incident_id = #{incidentId} 
+	</select>
+	
+	<select id="mktIcdProcList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+ 		 SELECT A.idx															/* 순번 */
+			  , A.incident_id													/* 인시던트 ID */
+			  , TO_CHAR(A.proc_time, 'MM/DD HH24:MI') AS proc_time		/* 처리시간 */
+			  , A.proc_content													/* 처리내용 */
+			  , A.proc_user														/* 등록자ID */
+			  , B.user_name														/* 등록자이름 */
+		   FROM cmon_incident_proc A
+LEFT OUTER JOIN cmon_user B
+			 ON A.proc_user = B.user_id		   
+		  WHERE 1 = 1
+		    AND A.incident_id = #{incidentId}
+	   ORDER BY A.proc_time DESC
+	</select>	
+				
+</mapper>

@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.framework.cmm.mapper.IcdMapper">
+
+	<select id="selectIcdList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+		 SELECT COUNT(*) OVER() AS total_count
+		 	  , TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI:SS') AS now_date_time
+		 	  , TO_CHAR(NOW() + '30 seconds', 'YYYYMMDDHH24MISS') AS add_thirty_time
+			  , (CASE WHEN CAST(#{pageNo}AS INTEGER) * CAST(#{pageSize}AS INTEGER) <![CDATA[ < ]]> COUNT(*) OVER() THEN 'Y' WHEN CAST(#{pageNo}AS INTEGER) * CAST(#{pageSize}AS INTEGER) <![CDATA[ >= ]]> COUNT(*) OVER() THEN 'N' END) AS next_page_yn
+			  , A.incident_id																		/* 인시던트 ID */
+			  , A.event_id																			/* 이벤트 ID */
+			  , TO_CHAR(A.event_time, 'YYYY-MM-DD HH24:MI:SS') AS occu_time							/* 이벤트 발생시간 */
+			  , CASE WHEN A.incident_state <![CDATA[ = ]]> '조치중' THEN 
+			  		TO_CHAR(now() - A.event_time, 'DD일 HH24:MI:SS') 
+		  	   ELSE TO_CHAR((A.incident_end_time - A.event_time), 'DD일 HH24:MI:SS') END AS cal_occu_time					/* 경과시간 */
+			  , A.type_nm																			/* 장비유형 */
+			  , A.container_nm																		/* 센터 */		
+			  , A.datacenter_nm
+			  , A.stdnm																				/* 표준서비스명 */
+			  , A.estdnm																			/* 단위서비스명 */
+			  , A.incident_level																	/* 인시던트 등급 */
+			  , A.incident_state																	/* 인시던트 상태 */
+			  , CASE WHEN B.gubun IS NULL THEN A.incident_contents ELSE SUBSTRING(A.incident_contents, 10) END AS incident_contents 																/* 이벤트 제목 */
+			  , TO_CHAR(A.incident_start_time, 'YYYY-MM-DD HH24:MI:SS') AS incident_start_time		/* 인시던트 시작 시간 */
+			  , TO_CHAR(A.incident_end_time, 'YYYY-MM-DD HH24:MI:SS') AS incident_end_time			/* 인시던트 종료 시간 */
+			  , A.captain																			/* 관제 상황 조장 */
+			  , A.incident_chief																	/* 상황 반장 */
+			  , A.restore_chief																		/* 복구 반장 */
+			  , A.restore_team																		/* 복구 팀 */
+			  , COALESCE(A.incident_service_impact, '없음') AS incident_service_impact				/* 서비스 영향도 */
+			  , A.incident_tech_voc																	/* 테크센터 VOC */
+			  , A.itsm_incident_id																	/* ITSM 인시던트 ID */
+			  , A.incident_result_type																/* 구분 */
+			  , A.incident_result_user																/* 인시던트 종료 처리자 */
+			  , B.event_id AS incident_event_id														/* 대표 이벤트 ID */
+			  , B.hostname AS incident_hostname														/* 대표 host명 */			 
+		   FROM cmon_incident_info A
+LEFT OUTER JOIN (SELECT Z.event_id, Z.incident_id, Z.hostname, Z.occu_time, Z.gubun
+		     		 , DENSE_RANK() OVER (PARTITION BY Z.incident_id ORDER BY Z.event_id) AS rnk
+		     	  FROM cmon_event_info Z) B		
+		     ON A.incident_id = B.incident_id
+		    AND B.rnk = 1		   
+		  WHERE 1 = 1 
+		 <if test = 'incidentState != null and incidentState != ""'>
+		   AND A.incident_state != #{incidentState}
+	   	 </if>
+		 <if test = 'incidentYn != null and incidentYn != ""'>
+	   	 	<if test = 'incidentYn.equals("Y")'>
+	   	 		AND A.incident_level = '이상징후'
+	   	 	</if>
+	   	 	<if test = 'incidentYn.equals("N")'>
+	   	 		AND A.incident_level != '이상징후'	   	 		   	 	
+	   	 	</if>		   
+	   	 </if>	   	 
+	   	 <if test = 'startDateTime != null and startDateTime != ""'>
+	   	 	<if test = 'searchType.equals("evtOccu")'>
+	   	 		AND A.event_time BETWEEN TO_TIMESTAMP(#{startDateTime}, 'YYYY-MM-DD HH24:MI:SS')
+	   	 							 AND TO_TIMESTAMP(#{endDateTime}, 'YYYY-MM-DD HH24:MI:SS')
+	   	 	</if>
+	   	 	<if test = 'searchType.equals("icdEnd")'>
+	   	 		AND A.incident_end_time BETWEEN TO_TIMESTAMP(#{startDateTime}, 'YYYY-MM-DD HH24:MI:SS')
+	   	 							 AND TO_TIMESTAMP(#{endDateTime}, 'YYYY-MM-DD HH24:MI:SS')	   	 		   	 	
+	   	 	</if>
+	   	 </if>
+	   	 <if test='kwIncidentId != null and kwIncidentId != ""'>
+	   	 		AND UPPER(A.incident_id) LIKE '%' ||  UPPER(#{kwIncidentId}) || '%'
+	   	 </if>
+	   	 <if test='kwIncidentLevel != null and kwIncidentLevel != ""'> 	 		
+	   	 	<if test='kwIncidentLevel.equals("모든장애")'>
+	   	 		AND A.incident_level != '이상징후'	
+	   	 	</if>
+	   	 	<if test="kwIncidentLevel neq '모든장애'.toString()">
+	   	 		AND A.incident_level = #{kwIncidentLevel}
+   	 		</if>
+	   	 </if>
+	   	 <if test='kwIncidentState != null and kwIncidentState != ""'>
+	   	 		AND A.incident_state = #{kwIncidentState}
+	   	 </if>	
+	   	 <if test='kwCaptain != null and kwCaptain != ""'>
+	   	 		AND UPPER(A.captain) LIKE '%' ||  UPPER(#{kwCaptain}) || '%'
+	   	 </if>
+	   	 <if test='kwIncidentChief != null and kwIncidentChief != ""'>
+	   	 		AND UPPER(A.incident_chief) LIKE '%' ||  UPPER(#{kwIncidentChief}) || '%'
+	   	 </if>
+	   	 <if test='kwRestoreChief != null and kwRestoreChief != ""'>
+	   	 		AND UPPER(A.restore_chief) LIKE '%' ||  UPPER(#{kwRestoreChief}) || '%'
+	   	 </if>
+	   	 <if test='kwRestoreTeam != null and kwRestoreTeam != ""'>
+	   	 		AND UPPER(A.restore_team) LIKE '%' ||  UPPER(#{kwRestoreTeam}) || '%'
+	   	 </if>
+	   	 <if test='kwIncidentContents != null and kwIncidentContents != ""'>
+	   	 		AND UPPER(A.incident_contents) LIKE '%' ||  UPPER(#{kwIncidentContents}) || '%'
+	   	 </if>
+	   	 <if test='kwContainerNm != null and kwContainerNm != ""'>
+	   	 		AND UPPER(A.container_nm) LIKE '%' ||  UPPER(#{kwContainerNm}) || '%'
+	   	 </if>
+	   	 <if test='kwStdnm != null and kwStdnm != ""'>
+	   	 		AND UPPER(A.stdnm) LIKE '%' ||  UPPER(#{kwStdnm}) || '%'
+	   	 </if>
+	   	 <if test='kwEstdnm != null and kwEstdnm != ""'>
+	   	 		AND UPPER(A.estdnm) LIKE '%' ||  UPPER(#{kwEstdnm}) || '%'
+	   	 </if>
+	   	 <if test='kwItsmIncidentId != null and kwItsmIncidentId != ""'>
+	   	 		AND UPPER(A.itsm_incident_id) LIKE '%' ||  UPPER(#{kwItsmIncidentId}) || '%'
+	   	 </if>
+	   	 <if test='kwIncidentServiceImpact != null and kwIncidentServiceImpact != ""'>
+	   	 		AND UPPER(A.incident_service_impact) LIKE '%' ||  UPPER(#{kwIncidentServiceImpact}) || '%'
+	   	 </if>  	 	   	 
+	   	 ORDER BY A.incident_id DESC 
+	   	<if test = 'pagingYn != null and pagingYn != ""'>	
+			<if test = 'pagingYn.equals("Y")'>	   	   
+				 LIMIT CAST(#{pageSize} AS INTEGER) OFFSET (CAST(#{pageNo} AS INTEGER) - 1) * CAST(#{pageSize} AS INTEGER)
+			</if>
+		</if>		 
+	</select>
+	
+	<select id="detail" parameterType="java.util.HashMap" resultType="java.util.HashMap">	 
+		 SELECT A.incident_id																		/* 인시던트 ID */
+			  , A.event_id																			/* 이벤트 ID */
+			  , TO_CHAR(A.event_time, 'YYYY-MM-DD HH24:MI:SS') AS occu_time							/* 이벤트 발생시간 */
+			  , CASE WHEN A.incident_state <![CDATA[ = ]]> '조치중' THEN 
+			  		TO_CHAR(now() - A.event_time, 'DD일 HH24:MI:SS') 
+		  	   ELSE TO_CHAR((A.incident_end_time - A.event_time), 'DD일 HH24:MI:SS') END AS cal_occu_time					/* 경과시간 */
+			  , A.type_nm																			/* 장비유형 */
+			  , A.container_nm																		/* 센터 */		
+			  , A.datacenter_nm
+			  , A.stdnm																				/* 표준서비스명 */
+		  	  , A.estdnm																			/* 단위서비스명 */
+			  , A.incident_level																	/* 인시던트 등급 */
+			  , A.incident_state																	/* 인시던트 상태 */			    
+			  , CASE WHEN B.gubun IS NULL THEN A.incident_contents ELSE SUBSTRING(A.incident_contents, 10) END AS incident_contents 																/* 이벤트 제목 */
+			  , TO_CHAR(A.incident_start_time, 'YYYY-MM-DD HH24:MI:SS') AS incident_start_time		/* 인시던트 시작 시간 */
+			  , TO_CHAR(A.incident_end_time, 'YYYY-MM-DD HH24:MI:SS') AS incident_end_time			/* 인시던트 종료 시간 */
+			  , A.captain																			/* 관제 상황 조장 */
+			  , A.incident_chief																	/* 상황 반장 */
+			  , A.restore_chief																		/* 복구 반장 */
+			  , A.restore_team																		/* 복구 팀 */
+			  , A.incident_service_impact															/* 서비스 영향도 */
+			  , A.incident_tech_voc																	/* 테크센터 VOC */
+			  , A.itsm_incident_id																	/* ITSM 인시던트 ID */
+			  , A.incident_result_type																/* 구분 */
+			  , A.incident_result_user AS incident_result_user_id									/* 인시던트 종료 처리자 */
+			  , TO_CHAR((A.incident_end_time - A.event_time), 'DD일 HH24:MI:SS') AS diff_time  /* 조치완료 일때 인시던트 시작~종료 시간 */
+			  , C.user_name AS incident_result_user
+			  , B.event_id AS incident_event_id														/* 대표 이벤트 ID */
+			  , B.hostname AS incident_hostname														/* 대표 host명 */
+		   FROM cmon_incident_info A
+LEFT OUTER JOIN (SELECT Z.event_id, Z.incident_id, Z.hostname, Z.occu_time, Z.gubun
+		     		 , DENSE_RANK() OVER (PARTITION BY Z.incident_id ORDER BY Z.event_id) AS rnk
+		     	  FROM cmon_event_info Z) B		
+		     ON A.incident_id = B.incident_id
+		    AND B.rnk = 1
+LEFT OUTER JOIN cmon_user C
+			 ON A.incident_result_user = C.user_id	    		     	    
+		  WHERE 1 = 1 
+		    AND A.incident_id = #{incidentId}
+	</select>
+	
+	<select id="popEvtList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+		SELECT A.event_id														/* 이벤트 ID */
+			 , A.target_contents												/* 이벤트 제목 */
+			 , TO_CHAR(A.occu_time, 'YYYY-MM-DD HH24:MI:SS') AS occu_time		/* 이벤트 발생시간 */
+			 , A.hostname														/* host명 */
+		  FROM cmon_event_info A
+		 WHERE A.event_id IN (SELECT UNNEST(string_to_array(Z.event_id, ',')) 
+							  FROM cmon_incident_info Z
+							 WHERE Z.incident_id = #{incidentId})
+	</select>
+	
+	<select id="icdProcList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+ 		 SELECT A.idx															/* 순번 */
+			  , A.incident_id													/* 인시던트 ID */
+			  , TO_CHAR(A.proc_time, 'YYYY-MM-DD HH24:MI:SS') AS proc_time		/* 처리시간 */
+			  , A.proc_content													/* 처리내용 */
+			  , A.proc_user														/* 등록자ID */
+			  , B.user_name														/* 등록자이름 */
+		   FROM cmon_incident_proc A
+LEFT OUTER JOIN cmon_user B
+			 ON A.proc_user = B.user_id		   
+		  WHERE 1 = 1
+		    AND A.incident_id = #{incidentId}
+	   ORDER BY A.proc_time DESC
+	</select>
+	
+	<select id="selectNewAlarmCount" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        SELECT COUNT(*) AS total_count
+          FROM cmon_incident_info A
+         WHERE 1=1
+           <if test="incidentState != null and incidentState != '' ">
+		   AND A.incident_state != #{incidentState}
+           </if>
+	</select>
+	
+	<update id="icdInfoUpdate" parameterType="java.util.HashMap">
+		UPDATE cmon_incident_info
+		   SET incident_level = #{incidentLevel}					/* 인시던트 상태 */
+		     , captain = #{captain}									/* 관제 상황 조장 */
+			 , incident_chief = #{incidentChief}					/* 상황 반장 */
+			 , restore_chief = #{restoreChief}						/* 복구 반장 */
+			 , restore_team = #{restoreTeam}						/* 복구 팀 */
+		 WHERE incident_id = #{incidentId}
+	</update>
+	
+	<update id="icdStatusEnd" parameterType="java.util.HashMap">
+		UPDATE cmon_incident_info
+		   SET incident_state = #{incidentState}					/* 인시던트 상태 */
+		     , incident_level = #{incidentLevel}					/* 인시던트 등급 */
+		     , incident_result_user = #{userId}						/* 인시던트 종료 처리자 */
+			 , incident_service_impact = #{incidentServiceImpact}	/* 서비스 영향도 */
+			 , incident_tech_voc = #{incidentTechVoc}				/* 테크센터 VOC */
+			 , itsm_incident_id = #{itsmIncidentId}					/* ITSM 인시던트 ID */
+			 , captain = #{captain}									/* 관제 상황 조장 */
+			 , incident_chief = #{incidentChief}					/* 상황 반장 */
+			 , restore_chief = #{restoreChief}						/* 상황 반장 */
+			 , restore_team = #{restoreTeam}						/* 복구 반장 */
+			 , incident_end_time = now()							/* 인시던트 종료 시간 - sysdate로 넣고있음 수정필요? */
+		 WHERE incident_id = #{incidentId}		
+	</update>
+	
+	<insert id="insertIcdProc" parameterType="java.util.HashMap">
+		INSERT INTO cmon_incident_proc (idx, incident_id, proc_time, proc_content, proc_user)
+		     VALUES ((select coalesce((select max(idx) from cmon_incident_proc) ,0)+1)			/* idx - pk */
+					, #{incidentId}																/* 인시던트 ID */
+					, TO_TIMESTAMP(#{procTime}, 'YYYY-MM-DD HH24:MI:SS')								/* 인시던트 처리내역 시간 */
+					, #{procContent}															/* 인시던트 처리내역 내용*/
+					, #{userId})																/* 인시던트 처리내역 등록자 */
+	</insert>
+	
+	<update id="updateIcdProc" parameterType="java.util.HashMap">
+		UPDATE cmon_incident_proc
+		   SET proc_time = to_timestamp(#{procTime},'YYYY-MM-DD HH24:MI:SS')
+		   	 , proc_content = #{procContent}
+		   	 , proc_user = #{userId}
+		 WHERE idx = CAST(#{idx} AS INTEGER)
+	</update>
+	
+	<insert id="insertIcd" parameterType="java.util.HashMap">
+		INSERT INTO cmon_incident_info 
+		(
+		      incident_id
+			, incident_start_time
+		    , incident_state
+		    , incident_level
+		    , event_id
+		    , event_time
+		    , type_nm
+		    , container_nm
+		    , stdnm
+		    , estdnm
+		    , incident_contents
+		)
+		SELECT 
+		       (
+				 SELECT 'I' || CASE WHEN X.max_incident_id > X.today_incident_id THEN X.max_incident_id ELSE X.today_incident_id END AS incident_id
+				   FROM (
+					      SELECT (CAST(SUBSTRING(Z.incident_id, 2) AS NUMERIC) + 1)AS max_incident_id 
+		                       , CAST(TO_CHAR(NOW(), 'YYYYMMDD') || '00001' AS NUMERIC) AS today_incident_id 
+						    FROM cmon_incident_info Z
+						   ORDER BY Z.incident_id DESC LIMIT 1
+				        ) X
+		       )
+		     , NOW() AS incident_start_time
+		     , '조치중' AS incident_state
+		     , '이상징후' AS incident_level
+		     , #{eventId} AS event_id 
+		     , A.occu_time
+		     , A.type_nm
+		     , A.container_nm
+		     , A.stdnm
+		     , A.estdnm
+		     , A.target_contents
+		  FROM cmon_event_info A
+		 WHERE 1=1
+		   AND A.event_id = (
+							  SELECT MIN(split_event_id) AS event_id 
+							    FROM (
+									   SELECT UNNEST(STRING_TO_ARRAY(#{eventId}, ',')) AS split_event_id
+							         ) Z
+		                    )
+	</insert>
+
+	<select id="selectIcdIdInEvtId" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+	    SELECT A.incident_id
+		  FROM cmon_incident_info A
+		 WHERE A.event_id = #{eventId}
+	</select>
+	
+</mapper>

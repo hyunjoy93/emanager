@@ -1,0 +1,384 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.framework.cmm.mapper.SptMapper">
+
+	<!-- 공지사항 목록 -->
+	<select id="selectNotice" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        SELECT idx
+        	, title
+        	, regist_person
+        	, TO_CHAR(regist_time, 'YYYY-MM-DD HH24:MI:SS') AS regist_time
+            , <![CDATA[
+               '<button type="button" class="bt bd primary user-update">수정</button> <button type="button" class="bt bd user-delete">삭제</button>'
+               ]]> AS btn_upd_del
+        	, count(idx) OVER() AS total_count
+        FROM cmon_notice
+        WHERE 1=1
+         <if test="searchStr != null and searchStr != ''">
+	   	 	<if test="searchType.equals('title')">
+	   	 		AND title LIKE '%' || #{searchStr} || '%' 
+	   	 	</if>
+	   	 	<if test="searchType.equals('regPerson')">
+	   	 		AND regist_person LIKE '%' || #{searchStr} || '%'
+	   	 	</if>
+	   	 </if>
+        ORDER BY idx DESC
+	   	<if test = 'pagingYn != null and pagingYn != ""'>	
+			<if test = 'pagingYn.equals("Y")'>	         
+        		 LIMIT CAST(#{pageSize} AS INTEGER) OFFSET (CAST(#{pageNo} AS INTEGER) - 1) * CAST(#{pageSize} AS INTEGER)
+			</if>
+		</if>
+	</select>
+	
+	<!-- 공지사항 상세 -->
+	<select id="selectNoticeDetail" parameterType="int" resultType="java.util.HashMap">
+        SELECT idx
+        	, title
+        	, content
+        	, regist_person
+        	, TO_CHAR(regist_time, 'YYYY-MM-DD HH24:MI:SS') AS regist_time
+        FROM cmon_notice
+        WHERE 1=1
+			AND idx = #{idx}
+	</select>
+	
+	<!-- 공지사항 idx -->
+	<select id="selectMaxIdx" resultType="int">
+        SELECT idx+1 AS idx
+        FROM cmon_notice 
+        WHERE 1=1 
+        ORDER BY idx DESC LIMIT 1
+	</select>
+	
+	<!-- 공지사항 등록 -->
+	<insert id="insertNotice" parameterType="java.util.HashMap">
+        INSERT INTO cmon_notice 
+        (
+	        idx
+	        , title
+	        , content
+	        , regist_person
+	        , regist_time
+        )
+        VALUES
+        (
+        	#{idx}
+        	, #{title}
+        	, #{content}
+        	, #{userName}
+        	, now()
+        )
+	</insert>
+	
+	<!-- 공지사항 삭제 -->
+	<delete id="deleteNotice" parameterType="int">
+		DELETE FROM cmon_notice
+		WHERE 1=1
+			AND idx = #{idx}
+	</delete>
+	
+	<!-- 공지사항 수정 -->
+	<update id="updateNotice" parameterType="java.util.HashMap">
+        UPDATE cmon_notice
+        SET title = #{title}
+        	, content = #{content}
+        WHERE idx = CAST(#{idx} AS INTEGER)
+	</update>
+	
+	<!-- VOC 등록 -->
+	<insert id="insertVoc" parameterType="java.util.HashMap">
+        INSERT INTO BBS_TXN 
+        (
+	          ctgry_type_cd
+        	, pstng_type_cd
+	        , pstng_title_nm
+	        , pstng_sbst
+	        , use_yn
+	        , view_cnt
+	        , ans_cmplt_yn
+	        , cret_dt
+	        , cretr_id
+	        , amd_dt
+	        , amdr_id
+        )
+        VALUES
+        (
+        	#{ctgryType} 
+        	, 'Q'
+	        , #{title}
+	        , #{content}
+	        , 'Y'
+	        , 0
+	        , 'N'
+	        , now()
+	        , #{userId}
+	        , now()
+	        , #{userId}
+        )
+	</insert>
+	
+	<!-- VOC 목록 -->
+	<select id="selectVocList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        SELECT bbs_txn_id
+        	, ctgry_type_cd
+	       	, CASE ctgry_type_cd
+	       	 	WHEN 'V01'
+	       	 		THEN '개선요청'
+	       	 	WHEN 'V02'
+	       	 		THEN '결함개선'
+	       	 	WHEN 'V03'
+	       	 		THEN '결함수정'
+	       	 	ELSE ctgry_type_cd
+	       	  END AS ctgry_type_nm
+        	, pstng_type_cd
+	        , pstng_title_nm
+	        , pstng_sbst
+	        , use_yn
+	        , view_cnt
+	        , ans_cmplt_yn
+	        , CASE WHEN ans_cmplt_yn='Y'
+	        	THEN <![CDATA[
+	        		'<span class="state ok"></span> 답변완료'
+	        	]]>
+	        	ELSE 
+	        	<![CDATA[
+	        		'<span class="state"></span> 답변대기'
+	        	]]> 
+	         END AS repl_yn
+        	, TO_CHAR(cret_dt, 'YYYY-MM-DD HH24:MI:SS') AS cret_dt
+	        , cretr_id
+	        , cmonuser.user_name AS cret_user_nm
+            , CASE WHEN ans_cmplt_yn='N' AND cretr_id = '${userId}'
+            	THEN
+            	<![CDATA[
+               '<button type="button" class="bt bd primary user-update">수정</button> <button type="button" class="bt bd user-delete">삭제</button>'
+               ]]>
+               ELSE ''
+              END AS btn_upd_del
+        	, count(bbs_txn_id) OVER() AS total_count
+        FROM BBS_TXN bbs, cmon_user cmonuser
+        WHERE 1=1
+        	AND bbs.pstng_type_cd = 'Q'
+        	AND bbs.cretr_id = cmonuser.user_id
+        	<if test="ctgryTypeCdGroup != null and ctgryTypeCdGroup != ''">
+        		AND ctgry_type_cd = #{ctgryTypeCdGroup}
+        	</if>
+        	<if test="ansYn != null and ansYn != ''">
+        		AND ans_cmplt_yn = #{ansYn}
+        	</if>
+	        <if test="searchStr != null and searchStr != ''">
+		    	<if test="searchType.equals('title')">
+		   	 		AND pstng_title_nm LIKE '%' || #{searchStr} || '%' 
+		   	 	</if>
+		   	 	<if test="searchType.equals('creUser')">
+		   	 		AND cmonuser.user_name LIKE '%' || #{searchStr} || '%'
+		   	 	</if>
+		   	</if>
+		   	AND bbs.use_yn = 'Y'
+	   	ORDER BY cret_dt DESC
+	   	<if test = 'pagingYn != null and pagingYn != ""'>	
+			<if test = 'pagingYn.equals("Y")'>	         
+        		 LIMIT CAST(#{pageSize} AS INTEGER) OFFSET (CAST(#{pageNo} AS INTEGER) - 1) * CAST(#{pageSize} AS INTEGER)
+			</if>
+		</if>
+	</select>
+	
+	<!-- VOC 조회수 증가 -->
+	<update id="updateViewCnt" parameterType="int">
+		UPDATE bbs_txn
+		SET view_cnt = view_cnt+1
+		WHERE bbs_txn_id = #{txnId}
+	</update>
+	
+	<!-- VOC 상세 -->
+	<select id="selectVocDetail" parameterType="int" resultType="java.util.HashMap">
+        SELECT bbs_txn_id
+        	 , ctgry_type_cd
+        	 , CASE ctgry_type_cd
+        	 	WHEN 'V01'
+        	 		THEN '개선요청'
+        	 	WHEN 'V02'
+        	 		THEN '결함개선'
+        	 	WHEN 'V03'
+        	 		THEN '결함수정'
+        	 	ELSE ctgry_type_cd
+        	  END AS ctgry_type_nm
+			 , pstng_title_nm
+			 , pstng_sbst	
+			 , cretr_id	
+			 , (SELECT user_name FROM cmon_user WHERE user_id = cretr_id) AS cret_nm
+			 , TO_CHAR(cret_dt, 'YYYY-MM-DD HH24:MI:SS') AS cret_dt
+			 , ans_cmplt_yn
+			 , answer
+			 , ans_id
+			 , (SELECT user_name FROM cmon_user WHERE user_id = ans_id) AS ans_nm
+			 , TO_CHAR(ans_dt, 'YYYY-MM-DD HH24:MI:SS') AS ans_dt
+			 , (SELECT count(bbs_repl_id) FROM bbs_repl REPL WHERE TXN.bbs_txn_id = REPL.bbs_txn_id) as reql_cnt
+		FROM bbs_txn TXN
+		WHERE pstng_type_cd = 'Q'
+			AND bbs_txn_id = #{txnId}
+	</select>
+	
+	<!-- VOC 수정 -->
+	<update id="updateVoc" parameterType="java.util.HashMap">
+		UPDATE bbs_txn
+		SET ctgry_type_cd = #{ctgryType}
+			, pstng_title_nm = #{title}
+			, pstng_sbst = #{content}
+			, amd_dt = now()
+			, amdr_id = #{userId}
+		WHERE bbs_txn_id = CAST(#{txnId} AS INTEGER)
+	</update>
+	
+	<!-- VOC 삭제 -->
+	<update id="deleteVoc" parameterType="int">
+		UPDATE bbs_txn
+		SET use_yn = 'N'
+		WHERE bbs_txn_id = #{txnId}
+	</update>
+	
+	<!-- VOC 답변 update -->
+	<update id="updateAns" parameterType="java.util.HashMap">
+		UPDATE bbs_txn
+		SET ans_cmplt_yn = #{ansYn}
+			, answer = #{regAnsContent}
+			, ans_id = #{userId}
+			, ans_dt = now()
+		WHERE bbs_txn_id = CAST(#{txnId} AS INTEGER)
+	</update>
+	
+	<!-- VOC 답변 댓글목록 -->
+	<select id="selectReplList" parameterType="int" resultType="java.util.HashMap">
+		SELECT bbs_txn_id
+			 , bbs_repl_id
+			 , repl_sbst
+			 , cretr_id
+			 , (SELECT user_name FROM cmon_user WHERE user_id = cretr_id) AS cretr_nm
+			 , TO_CHAR(cret_dt, 'YYYY-MM-DD HH24:MI:SS') AS cret_dt
+		FROM bbs_repl
+		WHERE bbs_txn_id = #{txnId}
+	</select>
+		
+	<!-- VOC 답변 댓글삭제 -->
+	<delete id="deleteRepl" parameterType="int">
+		DELETE FROM bbs_repl
+		WHERE bbs_repl_id = #{replId}
+	</delete>
+	
+	<!-- VOC 댓글 등록 -->
+	<insert id="insertRepl" parameterType="java.util.HashMap">
+		INSERT INTO bbs_repl
+		(
+			bbs_txn_id
+			, repl_sbst
+			, cret_dt
+			, cretr_id
+			, amd_dt
+			, amdr_id
+		)
+		VALUES (
+			CAST(#{txnId} AS INTEGER)
+			, #{replSbst}
+			, now()
+			, #{userId}
+			, now()
+			, #{userId}
+		)
+	</insert>
+			
+	<!-- FAQ 목록 FAQ 카테고리 코드 재정의 되면 수정해야함.-->
+	<select id="selectFaq" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+      SELECT bbs_txn_id                                     AS bbs_txn_id
+      	     , CASE ctgry_type_cd
+	       	   WHEN 'F99'
+	       	         THEN '공통'
+	       	   ELSE ''
+	       	   END											  AS ctgry_type_cd
+             , pstng_title_nm                                 AS pstng_title_nm
+             , TO_CHAR(amd_dt, 'YYYY-MM-DD HH24:MI:SS')       AS amd_dt
+             , amdr_id                                        AS amdr_id
+             , <![CDATA[
+                 '<button type="button" class="bt bd primary user-update">수정</button> <button type="button" class="bt bd user-delete">삭제</button>'
+               ]]> AS btn_upd_del
+             , count(bbs_txn_id) OVER() AS total_count
+        FROM bbs_txn BT
+       WHERE 1=1
+         AND pstng_type_cd = 'F'
+       <!-- <if test="ctgryTypeCdGroup != null and ctgryTypeCdGroup != ''">
+        		AND ctgry_type_cd = #{ctgryTypeCdGroup}
+        </if> -->
+         <if test="searchStr != null and searchStr != ''">
+	   	 	<if test="searchType.equals('pstngTitleNm')">
+	   	 		AND pstng_title_nm LIKE '%' || #{searchStr} || '%' 
+	   	 	</if>
+	   	 	<if test="searchType.equals('pstngSbst')">
+	   	 		AND pstng_sbst LIKE '%' || #{searchStr} || '%'
+	   	 	</if>
+	   	 </if>
+        ORDER BY bbs_txn_id DESC
+        LIMIT CAST(#{pageSize} AS INTEGER) OFFSET (CAST(#{pageNo} AS INTEGER) - 1) * CAST(#{pageSize} AS INTEGER)
+	</select>
+	
+	<!-- FAQ 상세 -->
+	<select id="selectFaqDetail" parameterType="int" resultType="java.util.HashMap">
+      SELECT  ctgry_type_cd
+        	, pstng_title_nm
+        	, TO_CHAR(amd_dt, 'YYYY-MM-DD HH24:MI:SS')      AS amd_dt
+        	, amdr_id
+        	, pstng_sbst
+        	, bbs_txn_id
+        FROM bbs_txn
+       WHERE 1=1
+		 AND bbs_txn_id = #{bbsTxnId}
+	</select>
+	
+	<!-- FAQ 등록 -->
+	<insert id="insertFaq" parameterType="java.util.HashMap">
+        INSERT INTO BBS_TXN 
+        (     ctgry_type_cd
+        	, pstng_type_cd
+	        , pstng_title_nm
+	        , pstng_sbst
+	        , use_yn
+	        , view_cnt
+	        , ans_cmplt_yn
+	        , cret_dt
+	        , cretr_id
+	        , amd_dt
+	        , amdr_id
+        )
+        VALUES
+        (
+        	  'F99' 
+        	, 'F'
+	        , #{pstngTitleNm}
+	        , #{pstngSbst}
+	        , 'Y'
+	        , 0
+	        , 'N'
+	        , now()
+	        , #{userId}
+	        , now()
+	        , #{userId}
+        )
+	</insert>
+	
+	<!-- FAQ 수정 -->
+	<update id="updateFaq" parameterType="java.util.HashMap">
+		UPDATE bbs_txn
+		SET   ctgry_type_cd = 'F99'
+			, pstng_title_nm = #{pstngTitleNm}
+			, pstng_sbst = #{pstngSbst}
+			, amd_dt = now()
+			, amdr_id = #{userId}
+		WHERE bbs_txn_id = CAST(#{bbsTxnId} AS INTEGER)
+	</update>
+		
+	<!-- FAQ 삭제 -->
+	<delete id="deleteFaq" parameterType="int">
+		DELETE FROM bbs_txn
+		WHERE bbs_txn_id = #{bbsTxnId}
+	</delete>
+	
+</mapper>
