@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.framework</groupId>
 	<artifactId>project</artifactId>
-	<version>luppiter</version>
+	<version>evisitor</version>
 	<packaging>war</packaging>
 	<name>project</name>
 	<description>Project for Spring Boot</description>

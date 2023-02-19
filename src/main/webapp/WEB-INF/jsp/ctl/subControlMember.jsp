@@ -517,7 +517,7 @@ function fnPopNullCheck(){
 function fnInit(){
 	
 	// 메뉴 초기화
-	fnInitGnbLnb(8, 1, 8, 1);
+	fnInitGnbLnb(2, 1, 2, 1);
 	
 	// 그리드 초기화
 	fnInitGrid();

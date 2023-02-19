@@ -1173,9 +1173,9 @@ section.section.login .logo {
     position: fixed;
     left: 80px;
     top: 80px;
-    width: 100px;
+    width: 120px;
     height: 40px;
-    scale: 2;
+    scale: 1.5;
     font-size: 0;
     background-image: url(../img/ci2.png);
     margin-left: 31px;

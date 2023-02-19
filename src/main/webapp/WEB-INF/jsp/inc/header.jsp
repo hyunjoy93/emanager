@@ -10,8 +10,8 @@
 <title>e-visitor 통합유지보수 시스템</title>
 	
 <!-- [Favicons] -->
-<link href="<c:url value='/img/favicon_cloud.png' />" rel="icon">
-<link href="<c:url value='/img/apple-touch-icon.png' />" rel="apple-touch-icon">
+<link href="<c:url value='/img/favicon.png' />" rel="icon">
+<%-- <link href="<c:url value='/img/apple-touch-icon.png' />" rel="apple-touch-icon"> --%>
 	
 <!--[CSS]-->
 <link rel="stylesheet" href="<c:url value='/css/jquery-ui.css' />"/>
@@ -70,9 +70,9 @@ var loginUserGroup = "${loginInfo.user_group}";
 				<a href="/view/dsb/mainOld" class="menu">Dashboard</a>
 			</li>
 			<li>
-				<a href="javascript:fnPostSend('<c:url value="/view/evt/subEventState" />', {viewType:'00'})" class="menu">운영관리</a>
+				<a href="javascript:fnPostSend('<c:url value="/view/ctl/subControlMember" />', {viewType:'00'})" class="menu">운영관리</a>
 				<ul class="subMenu">
-					<li><a href="javascript:fnPostSend('<c:url value="/view/evt/subEventState" />', {viewType:'00'})" class="menu">사용자관리</a></li>
+					<li><a href="javascript:fnPostSend('<c:url value="/view/ctl/subControlMember" />', {viewType:'00'})" class="menu">사용자관리</a></li>
 					<li><a href="javascript:fnPostSend('<c:url value="/view/evt/subEventState" />', {viewType:'10'})" class="menu">업체관리</a></li>
 					<li><a href="javascript:fnPostSend('<c:url value="/view/evt/subEventState" />', {viewType:'10'})" class="menu">자산관리</a></li>
 				</ul>
