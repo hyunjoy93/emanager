@@ -62,76 +62,61 @@ var loginUserGroup = "${loginInfo.user_group}";
 	
 	<button type="button" class="btMenu"><i>좌측메뉴열닫기</i></button>
 
-	<h1 class="logo"><a href="/"><strong>LUPPITER</strong> 통합관제시스템</a></h1>
+	<h1 class="logo"><a href="/"></a></h1>
 
 	<nav class="gnb">
 		<ul class="mainMenu">
 			<li>
-				<a href="/view/dsb/main" class="menu">Dashboard</a>
-				<a href="" class="btPop" onclick="window.open('<c:url value='/view/dsb/mainDashboardOld' />','','All=no,width=1800px,height=840px,left=0,top=0');">관제용</a>
+				<a href="/view/dsb/mainOld" class="menu">Dashboard</a>
+			</li>
+			<li>
+				<a href="javascript:fnPostSend('<c:url value="/view/evt/subEventState" />', {viewType:'00'})" class="menu">운영관리</a>
 				<ul class="subMenu">
-					<li><a href="" onclick="window.open('<c:url value='/view/dsb/mainDashboardOld' />','','All=no,width=1800px,height=840px,left=0,top=0');" class="menu">상황실 대시보드</a></li>
+					<li><a href="javascript:fnPostSend('<c:url value="/view/evt/subEventState" />', {viewType:'00'})" class="menu">사용자관리</a></li>
+					<li><a href="javascript:fnPostSend('<c:url value="/view/evt/subEventState" />', {viewType:'10'})" class="menu">업체관리</a></li>
+					<li><a href="javascript:fnPostSend('<c:url value="/view/evt/subEventState" />', {viewType:'10'})" class="menu">자산관리</a></li>
 				</ul>
 			</li>
 			<li>
-				<a href="javascript:fnPostSend('<c:url value="/view/evt/subEventState" />', {viewType:'00'})" class="menu">이벤트관리</a>
+				<a href="javascript:fnPostSend('<c:url value='/view/icd/subIncidentState' />', {viewType:'00'})" class="menu">점검관리</a>
 				<ul class="subMenu">
-					<li><a href="javascript:fnPostSend('<c:url value="/view/evt/subEventState" />', {viewType:'00'})" class="menu">이벤트 상황 관리</a></li>
-					<li><a href="javascript:fnPostSend('<c:url value="/view/evt/subEventState" />', {viewType:'10'})" class="menu">이벤트 이력 조회</a></li>
+					<li><a href="javascript:fnPostSend('<c:url value='/view/icd/subIncidentState' />', {viewType:'00'})" class="menu">점검현황</a></li>
+					<li><a href="javascript:fnPostSend('<c:url value='/view/icd/subIncidentState' />', {viewType:'10'})" class="menu">점검요청</a></li>
+					<li><a href="javascript:fnPostSend('<c:url value='/view/icd/subIncidentState' />', {viewType:'10'})" class="menu">점검보고서</a></li>
 				</ul>
 			</li>
 			<li>
-				<a href="javascript:fnPostSend('<c:url value='/view/icd/subIncidentState' />', {viewType:'00'})" class="menu">인시던트관리</a>
+				<a href="<c:url value='/view/cst/subManageConsist' />" class="menu">통계관리</a>
 				<ul class="subMenu">
-					<li><a href="javascript:fnPostSend('<c:url value='/view/icd/subIncidentState' />', {viewType:'00'})" class="menu">인시던트 상황 관리</a></li>
-					<li><a href="javascript:fnPostSend('<c:url value='/view/icd/subIncidentState' />', {viewType:'10'})" class="menu">인시던트 이력 조회</a></li>
+					<li><a href="<c:url value='/view/cst/subManageConsist' />" class="menu">자산통계</a></li>
+					<li><a href="<c:url value='/view/cst/subManageConsist' />" class="menu">점검통계(자산별)</a></li>
+					<li><a href="<c:url value='/view/cst/subManageConsist' />" class="menu">점검통계(업체별)</a></li>
 				</ul>
 			</li>
 			<li>
-				<a href="<c:url value='/view/cst/subManageConsist' />" class="menu">구성/성능관리</a>
+				<a href="<c:url value='/view/stt/subStatsLinkage' />" class="menu">환경설정</a>
 				<ul class="subMenu">
-					<li><a href="<c:url value='/view/cst/subManageConsist' />" class="menu">구성정보 조회</a></li>
-					<li class="hide"><a href="<c:url value='/view/cst/subManagePerformance' />" class="menu">성능정보 조회</a></li>
-				</ul>
-			</li>
-			<li class="hide">
-				<a href="<c:url value='/view/wrk/subWorkList' />" class="menu">작업관리</a>
-				<ul class="subMenu">
-					<li><a href="<c:url value='/view/wrk/subWorkList' />" class="menu">작업관리</a></li>
-					<!-- <li><a href="<c:url value='/view/wrk/subWorkException' />" class="menu">예외 등록</a></li> -->
+					<li><a href="<c:url value='/view/stt/subStatsLinkage' />" class="menu">기본설정</a></li>
+					<li><a href="<c:url value='/view/stt/subStatsEvent' />" class="menu">부서분류</a></li>
+					<li><a href="<c:url value='/view/stt/subStatsIncident' />" class="menu">자산분류</a></li>
+					<li><a href="<c:url value='/view/stt/subStatsUserrate' />" class="menu">점검양식</a></li>
 				</ul>
 			</li>
 			<li>
-				<a href="<c:url value='/view/stt/subStatsLinkage' />" class="menu">인벤토리 및 통계</a>
+				<a href="<c:url value='/view/spt/subSupportVoc' />" class="menu">공지사항</a>
 				<ul class="subMenu">
-					<li><a href="<c:url value='/view/stt/subStatsLinkage' />" class="menu">관제대상 및 연동상태</a></li>
-					<li class="hide"><a href="<c:url value='/view/stt/subStatsEvent' />" class="menu">이벤트 통계(발생/조치/처리)</a></li>
-					<li class="hide"><a href="<c:url value='/view/stt/subStatsIncident' />" class="menu">인시던트 통계(발생/조치/처리)</a></li>
-					<li><a href="<c:url value='/view/stt/subStatsUserrate' />" class="menu">자원 사용률 통계</a></li>
-					<li><a href="<c:url value='/view/stt/subStatsInventory' />" class="menu">매뉴얼 인벤토리</a></li>
+					<li><a href="<c:url value='/view/spt/subSupportVoc' />" class="menu">공지사항</a></li>
 				</ul>
 			</li>
-			<li>
-				<a href="<c:url value='/view/spt/subSupportVoc' />" class="menu">Support</a>
-				<ul class="subMenu">
-					<li><a href="<c:url value='/view/spt/subSupportVoc' />" class="menu">VOC</a></li>
-					<li><a href="<c:url value='/view/spt/subSupportFaq' />" class="menu">FAQ</a></li>
-					<li><a href="<c:url value='/view/spt/subSupportNotice' />" class="menu">공지사항</a></li>
-				</ul>
-			</li>
-			<li<c:if test="${'사용자' eq loginInfo.user_group}"> class="hide"</c:if>>
+		</ul>
+<%-- 			<li<c:if test="${'사용자' eq loginInfo.user_group}"> class="hide"</c:if>>
 				<a href="<c:url value='/view/ctl/subControlMember' />" class="menu">관제운영관리</a>
 				<ul class="subMenu">
 					<li><a href="<c:url value='/view/ctl/subControlMember' />" class="menu">사용자 관리</a></li>
 					<li><a href="<c:url value='/view/ctl/subControlContact' />" class="menu">공지그룹 관리</a></li>
 					<li><a href="<c:url value='/view/ctl/operatorManual' />" class="menu">운영자 매뉴얼(WIKI)</a></li>
 				</ul>
-			</li>
-			<li>
-				<a href="<c:url value='/view/dsb/mainOld' />" class="menu">Dashboard_new</a>
-				<a href="" class="btPop" onclick="window.open('<c:url value='/view/dsb/mainDashboard' />','','All=no,width=1600px,height=840px,left=0,top=0');">관제용</a>
-			</li>				
-		</ul>
+			</li> --%>
 	</nav>
 
 	<div class="user">

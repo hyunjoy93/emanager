@@ -21,8 +21,6 @@
 				<input id="loginId" type="text" name="loginId" class="input id" placeholder="USER ID(사번)">
 				<input id="loginPassword" type="password" name="loginPassword" class="input pw" placeholder="PASSWORD">
 				<span class="check"><input type="checkbox" id="checkId"><label>아이디저장</label></span>
-				<span class="check" Style="float: right;"><input type="checkbox" id="ldapCheckId"><label id="ldapCheckIdTxt">로컬ID로그인</label></span>
-				<p style="float: right; color: var(--color-danger); font-size:11px; font-weight:400; ">※LDAP 사번 로그인 테스트를 위한 버튼(개발중)▲</p>
 				<a id="btnLogin" class="bt bg secondary">LOGIN</a>
 			</form>
 		</div>

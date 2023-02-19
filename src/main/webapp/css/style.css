@@ -1046,7 +1046,20 @@ canvas { display: block; width: 100%; height: 100%; -moz-user-select: none; -web
 /******************** SEMANTIC ********************/
 
 /* HEADING */
-h1.logo { display: inline-flex; align-items: stretch; height: 24px; color: #cdddef; font-size: 1.25rem; font-weight: 400; line-height: 1; text-align: left; background: url("../img/ci.png") 0 0/auto 22px no-repeat; margin-right: 24px; }
+h1.logo {
+    display: inline-flex;
+    align-items: stretch;
+    height: 24px;
+    width: 115px;
+    color: #cdddef;
+    font-size: 1.25rem;
+    font-weight: 400;
+    line-height: 1;
+    text-align: left;
+    background: url(../img/ci2.png) 0/auto 40px no-repeat;
+    margin-right: 24px;
+}
+
 h1.logo strong { color: #fff; font-size: 120%; font-weight: 700; line-height: 100%; letter-spacing: 0; padding: 0 8px; }
 h1.logo a { display: flex; align-items: center; width: 100%; height: 100%; padding-left: 90px; }
 h1.logo a:focus { outline: 1px dotted #fff; }
@@ -1156,7 +1169,18 @@ section.section.login { align-items: flex-end; background: url("../img/login_bg0
 	from { background: url("../img/login_bg01.png") 15% 50%/720px no-repeat, url("../img/login_bg02.png") center bottom/contain no-repeat; background-color: #f3f7fd; } 
 	to { background: url("../img/login_bg01.png") 25% 50%/720px no-repeat, url("../img/login_bg02.png") center bottom/contain no-repeat; background-color: #f3f7fd; } 
 }
-section.section.login .logo { position: fixed; left: 80px; top: 80px; width: 96px; font-size: 0; background-image: url("../img/ci_bk.png"); margin-right: 0; }
+section.section.login .logo {
+    position: fixed;
+    left: 80px;
+    top: 80px;
+    width: 100px;
+    height: 40px;
+    scale: 2;
+    font-size: 0;
+    background-image: url(../img/ci2.png);
+    margin-left: 31px;
+}
+
 section.section.login .pageTitle { position: absolute; left: 0; bottom: 100%; display: flex; flex-direction: column; align-items: flex-start; color: var(--color-primary-tint50); font-size: 32px; font-weight: 400; }
 section.section.login .pageTitle strong { color: #fff; font-size: 16px; font-weight: 600; letter-spacing: 2px; line-height: 1; border-radius: 2px; background-color: var(--color-secondary); padding: 4px 8px; margin-bottom: 8px; }
 section.section.login .box { position: relative; display: flex; flex-direction: column; width: 280px; padding: 40px 0; }

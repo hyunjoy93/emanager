@@ -262,9 +262,9 @@ function fnInit(){
 	fn_getAgentStat();
 	
 	//30초마다 새로고침
- 	setInterval(function(){
-		location.reload();
-	}, 30000); 
+//  	setInterval(function(){
+// 		location.reload();
+// 	}, 30000); 
 	
 }
 
